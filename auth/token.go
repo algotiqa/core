@@ -27,8 +27,8 @@ package auth
 import (
 	"bytes"
 	"context"
-	"github.com/bit-fever/core"
-	"github.com/bit-fever/core/req"
+	"github.com/tradalia/core"
+	"github.com/tradalia/core/req"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"log/slog"
 	"net/http"

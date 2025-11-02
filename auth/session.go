@@ -25,7 +25,7 @@ THE SOFTWARE.
 package auth
 
 import (
-	"github.com/bit-fever/core/auth/role"
+	"github.com/tradalia/core/auth/role"
 	"time"
 )
 

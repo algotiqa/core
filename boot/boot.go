@@ -27,7 +27,7 @@ package boot
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/bit-fever/core"
+	"github.com/tradalia/core"
 	"github.com/gin-gonic/gin"
 	sloggin "github.com/samber/slog-gin"
 	"github.com/spf13/viper"
@@ -46,8 +46,8 @@ import (
 func ReadConfig(component string, config any) {
 	viper.SetConfigName(component)
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/etc/bit-fever/")
-	viper.AddConfigPath("$HOME/.bit-fever/"+component)
+	viper.AddConfigPath("/etc/tradalia/")
+	viper.AddConfigPath("$HOME/.tradalia/"+component)
 	viper.AddConfigPath("config")
 
 	err := viper.ReadInConfig()

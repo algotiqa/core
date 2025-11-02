@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 package roles
 
-import "github.com/bit-fever/core/auth/role"
+import "github.com/tradalia/core/auth/role"
 
 //=============================================================================
 

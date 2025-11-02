@@ -30,7 +30,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"github.com/bit-fever/core"
+	"github.com/tradalia/core"
 	"io"
 	"log/slog"
 	"net/http"

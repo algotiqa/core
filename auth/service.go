@@ -25,7 +25,7 @@ THE SOFTWARE.
 package auth
 
 import (
-	"github.com/bit-fever/core/req"
+	"github.com/tradalia/core/req"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"

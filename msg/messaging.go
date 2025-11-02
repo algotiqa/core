@@ -30,7 +30,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/bit-fever/core"
+	"github.com/tradalia/core"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
