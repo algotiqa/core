@@ -29,7 +29,7 @@ import (
 	"context"
 	"github.com/algotiqa/core"
 	"github.com/algotiqa/core/req"
-	"github.com/algotiqa/go-oidc/v3/oidc"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"log/slog"
 	"net/http"
 	"sync"
