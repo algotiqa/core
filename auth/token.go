@@ -27,9 +27,9 @@ package auth
 import (
 	"bytes"
 	"context"
-	"github.com/tradalia/core"
-	"github.com/tradalia/core/req"
-	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/algotiqa/core"
+	"github.com/algotiqa/core/req"
+	"github.com/algotiqa/go-oidc/v3/oidc"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -54,7 +54,7 @@ type RestContext struct {
 	clientSecret  string
 	client        *http.Client
 	provider      *oidc.Provider
-	tokenResponse * TokenResponse
+	tokenResponse *TokenResponse
 	tokenDate     time.Time
 }
 
@@ -69,16 +69,16 @@ var restContext *RestContext
 //=============================================================================
 
 func InitAuthentication(auth *core.Authentication) {
-	client        := req.GetClient("bf")
-	ccontext      := oidc.ClientContext(context.Background(), client)
+	client := req.GetClient("bf")
+	ccontext := oidc.ClientContext(context.Background(), client)
 	provider, err := oidc.NewProvider(ccontext, auth.Authority)
 	core.ExitIfError(err)
 
 	restContext = &RestContext{
-		clientId    : auth.ClientId,
+		clientId:     auth.ClientId,
 		clientSecret: auth.ClientSecret,
-		client      : client,
-		provider    : provider,
+		client:       client,
+		provider:     provider,
 	}
 }
 
@@ -89,14 +89,14 @@ func Token() (string, error) {
 	defer restContext.Unlock()
 
 	if restContext.tokenResponse == nil || isTokenExpired() {
-		t,err := getToken()
+		t, err := getToken()
 		if err != nil {
 			slog.Error("Cannot get authentication token", "error", err)
 			return "", err
 		}
 
 		restContext.tokenResponse = t
-		restContext.tokenDate     = time.Now()
+		restContext.tokenDate = time.Now()
 	}
 
 	return restContext.tokenResponse.AccessToken, nil
@@ -109,9 +109,9 @@ func Token() (string, error) {
 //=============================================================================
 
 func getToken() (*TokenResponse, error) {
-	params := "grant_type=client_credentials&client_id="+restContext.clientId+"&client_secret="+ restContext.clientSecret
-	resp   := TokenResponse{}
-	url    := restContext.provider.Endpoint().TokenURL
+	params := "grant_type=client_credentials&client_id=" + restContext.clientId + "&client_secret=" + restContext.clientSecret
+	resp := TokenResponse{}
+	url := restContext.provider.Endpoint().TokenURL
 
 	body := []byte(params)
 	reader := bytes.NewReader(body)
@@ -134,10 +134,10 @@ func getToken() (*TokenResponse, error) {
 
 func isTokenExpired() bool {
 	date := restContext.tokenDate
-	now  := time.Now()
+	now := time.Now()
 
 	curDur := now.Sub(date)
-	maxDur := time.Duration(restContext.tokenResponse.ExpiresIn * 9/10) * time.Second
+	maxDur := time.Duration(restContext.tokenResponse.ExpiresIn*9/10) * time.Second
 
 	return curDur >= maxDur
 }

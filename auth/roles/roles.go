@@ -24,16 +24,16 @@ THE SOFTWARE.
 
 package roles
 
-import "github.com/tradalia/core/auth/role"
+import "github.com/algotiqa/core/auth/role"
 
 //=============================================================================
 
-var Admin     = []role.Role{ role.Admin }
-var User      = []role.Role{ role.User }
-var Service   = []role.Role{ role.Service }
+var Admin = []role.Role{role.Admin}
+var User = []role.Role{role.User}
+var Service = []role.Role{role.Service}
 
-var Admin_User         = []role.Role{ role.Admin, role.User }
-var Admin_Service      = []role.Role{ role.Admin, role.Service }
-var Admin_User_Service = []role.Role{ role.Admin, role.User, role.Service }
+var Admin_User = []role.Role{role.Admin, role.User}
+var Admin_Service = []role.Role{role.Admin, role.Service}
+var Admin_User_Service = []role.Role{role.Admin, role.User, role.Service}
 
 //=============================================================================

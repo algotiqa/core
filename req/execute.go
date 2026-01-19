@@ -30,7 +30,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"github.com/tradalia/core"
+	"github.com/algotiqa/core"
 	"io"
 	"log/slog"
 	"net/http"
@@ -47,7 +47,7 @@ const (
 
 //=============================================================================
 
-var clientMap = map[string] *http.Client {}
+var clientMap = map[string]*http.Client{}
 
 //=============================================================================
 //===
@@ -193,7 +193,7 @@ func BuildResponse(res *http.Response, err error, output any) error {
 
 	if res.StatusCode >= 400 {
 		slog.Error("Error from the server", "error", res.Status)
-		return errors.New("Client error: "+ res.Status)
+		return errors.New("Client error: " + res.Status)
 	}
 
 	//--- Read the response body
@@ -223,12 +223,12 @@ func createClient(caCert string, clientCert string, clientKey string) *http.Clie
 	caCertPool := x509.NewCertPool()
 
 	if caCert != "" {
-		cert, err := os.ReadFile("config/"+ caCert)
+		cert, err := os.ReadFile("config/" + caCert)
 		core.ExitIfError(err)
 		caCertPool.AppendCertsFromPEM(cert)
 	}
 
-	certificate, err := tls.LoadX509KeyPair("config/"+ clientCert, "config/"+ clientKey)
+	certificate, err := tls.LoadX509KeyPair("config/"+clientCert, "config/"+clientKey)
 	core.ExitIfError(err)
 
 	return &http.Client{
@@ -248,7 +248,7 @@ func setupHeader(header *http.Header, token, onBehalfOf string) {
 	header.Set("Content-Type", ApplicationJson)
 
 	if token != "" {
-		header.Set("Authorization", "Bearer "+ token)
+		header.Set("Authorization", "Bearer "+token)
 	}
 
 	if onBehalfOf != "" {

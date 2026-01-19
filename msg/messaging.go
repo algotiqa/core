@@ -30,13 +30,13 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/tradalia/core"
+	"github.com/algotiqa/core"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 //=============================================================================
 
-var url      string
+var url string
 var channel *amqp.Channel
 
 //=============================================================================
@@ -44,20 +44,20 @@ var channel *amqp.Channel
 func InitMessaging(cfg *core.Messaging) {
 
 	slog.Info("Starting messaging...")
-	url = "amqp://"+ cfg.Username + ":" + cfg.Password + "@" + cfg.Address + "/"
+	url = "amqp://" + cfg.Username + ":" + cfg.Password + "@" + cfg.Address + "/"
 
 	err := connect()
 	if err != nil {
-		core.ExitWithMessage("Failed to connect to the messaging system or to get a channel: "+ err.Error())
+		core.ExitWithMessage("Failed to connect to the messaging system or to get a channel: " + err.Error())
 	}
 
 	createExchange(ExInventory)
 	createQueue(QuInventoryToPortfolio)
-	bindQueue  (ExInventory, QuInventoryToPortfolio)
+	bindQueue(ExInventory, QuInventoryToPortfolio)
 	createQueue(QuInventoryToCollector)
-	bindQueue  (ExInventory, QuInventoryToCollector)
+	bindQueue(ExInventory, QuInventoryToCollector)
 	createQueue(QuInventoryToStorage)
-	bindQueue  (ExInventory, QuInventoryToStorage)
+	bindQueue(ExInventory, QuInventoryToStorage)
 
 	createExchange(ExCollector)
 	createQueue(QuCollectorToInternal)
@@ -124,7 +124,7 @@ func SendMessage(exchange string, source string, msgType int, entity any) error 
 
 	message := &Message{
 		Source: source,
-		Type  : msgType,
+		Type:   msgType,
 		Entity: body,
 	}
 
@@ -135,10 +135,10 @@ func SendMessage(exchange string, source string, msgType int, entity any) error 
 
 func ReceiveMessages(queue string, handler func(m *Message) bool) {
 	for {
-		messages, err := channel.Consume(queue,"",false,false,false,false,nil)
+		messages, err := channel.Consume(queue, "", false, false, false, false, nil)
 
 		if err != nil {
-			core.ExitWithMessage("ReceiveMessages: Cannot create the consumer channel for '"+ queue +"' : "+ err.Error())
+			core.ExitWithMessage("ReceiveMessages: Cannot create the consumer channel for '" + queue + "' : " + err.Error())
 		}
 
 		for d := range messages {
@@ -170,7 +170,7 @@ func ReceiveMessages(queue string, handler func(m *Message) bool) {
 		if channel.IsClosed() {
 			err = connect()
 			if err != nil {
-				core.ExitWithMessage("ReceiveMessages: Cannot reconnect to the channel: "+ err.Error())
+				core.ExitWithMessage("ReceiveMessages: Cannot reconnect to the channel: " + err.Error())
 			} else {
 				slog.Info("ReceiveMessages: Successfully reconnected")
 			}
@@ -185,30 +185,30 @@ func ReceiveMessages(queue string, handler func(m *Message) bool) {
 //=============================================================================
 
 func createExchange(name string) {
-	err := channel.ExchangeDeclare(name,"fanout",true,false,false,false,nil)
+	err := channel.ExchangeDeclare(name, "fanout", true, false, false, false, nil)
 
 	if err != nil {
-		core.ExitWithMessage("Cannot create the '"+ name +"' exchange in the messaging system: "+ err.Error())
+		core.ExitWithMessage("Cannot create the '" + name + "' exchange in the messaging system: " + err.Error())
 	}
 }
 
 //=============================================================================
 
 func createQueue(name string) {
-	_, err := channel.QueueDeclare(name,true,false,false,false,nil)
+	_, err := channel.QueueDeclare(name, true, false, false, false, nil)
 
 	if err != nil {
-		core.ExitWithMessage("Cannot create the '"+ name +"' queue in the messaging system: "+ err.Error())
+		core.ExitWithMessage("Cannot create the '" + name + "' queue in the messaging system: " + err.Error())
 	}
 }
 
 //=============================================================================
 
 func bindQueue(exchange, queue string) {
-	err := channel.QueueBind(queue,"",exchange,false,nil)
+	err := channel.QueueBind(queue, "", exchange, false, nil)
 
 	if err != nil {
-		core.ExitWithMessage("Cannot bind queue '"+ queue +"' to the exchange: "+ err.Error())
+		core.ExitWithMessage("Cannot bind queue '" + queue + "' to the exchange: " + err.Error())
 	}
 }
 

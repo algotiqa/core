@@ -27,7 +27,7 @@ package boot
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/tradalia/core"
+	"github.com/algotiqa/core"
 	"github.com/gin-gonic/gin"
 	sloggin "github.com/samber/slog-gin"
 	"github.com/spf13/viper"
@@ -46,8 +46,8 @@ import (
 func ReadConfig(component string, config any) {
 	viper.SetConfigName(component)
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/etc/tradalia/")
-	viper.AddConfigPath("$HOME/.tradalia/"+component)
+	viper.AddConfigPath("/etc/algotiqa/")
+	viper.AddConfigPath("$HOME/.algotiqa/" + component)
 	viper.AddConfigPath("config")
 
 	err := viper.ReadInConfig()
@@ -63,14 +63,14 @@ func InitLogger(component string, app *core.Application) *slog.Logger {
 
 	//--- Create log file
 
-	logFile := "log/"+ component +".log"
+	logFile := "log/" + component + ".log"
 
 	f, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	core.ExitIfError(err)
 
 	var wrt io.Writer = f
 
-	if ! app.Production {
+	if !app.Production {
 		wrt = io.MultiWriter(os.Stdout, f)
 	}
 
@@ -86,7 +86,7 @@ func InitLogger(component string, app *core.Application) *slog.Logger {
 
 	logger := slog.New(slog.NewJSONHandler(wrt, opts)).With(
 		slog.String("component", component),
-		slog.Int   ("pid",       os.Getpid()),
+		slog.Int("pid", os.Getpid()),
 	)
 
 	slog.SetDefault(logger)
@@ -144,4 +144,3 @@ func RunHttpServer(router *gin.Engine, app *core.Application) {
 }
 
 //=============================================================================
-

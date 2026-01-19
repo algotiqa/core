@@ -1,13 +1,13 @@
-module github.com/tradalia/core
+module github.com/algotiqa/core
 
 go 1.24.2
 
 require (
-	github.com/coreos/go-oidc/v3 v3.16.0
+	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/gin-gonic/gin v1.11.0
-	github.com/go-playground/validator/v10 v10.28.0
+	github.com/go-playground/validator/v10 v10.30.1
 	github.com/rabbitmq/amqp091-go v1.10.0
-	github.com/samber/slog-gin v1.18.0
+	github.com/samber/slog-gin v1.19.1
 	github.com/spf13/viper v1.21.0
 )
 

@@ -25,7 +25,7 @@ THE SOFTWARE.
 package auth
 
 import (
-	"github.com/tradalia/core/auth/role"
+	"github.com/algotiqa/core/auth/role"
 	"time"
 )
 
