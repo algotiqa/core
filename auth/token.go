@@ -27,13 +27,14 @@ package auth
 import (
 	"bytes"
 	"context"
-	"github.com/algotiqa/core"
-	"github.com/algotiqa/core/req"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/algotiqa/core"
+	"github.com/algotiqa/core/req"
+	"github.com/coreos/go-oidc/v3/oidc"
 )
 
 //=============================================================================
