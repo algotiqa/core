@@ -32,9 +32,9 @@ import (
 //=============================================================================
 
 func TestToIntDate(t *testing.T) {
-	td := time.Date(2025, 05, 03, 11, 12,13,0, time.UTC)
+	td := time.Date(2025, 05, 03, 11, 12, 13, 0, time.UTC)
 	id := ToIntDate(&td)
-	exp:= IntDate(20250503)
+	exp := IntDate(20250503)
 
 	if id != exp {
 		t.Errorf("ToIntDate failed. Expected %v but got %v", exp, id)
@@ -44,8 +44,8 @@ func TestToIntDate(t *testing.T) {
 //=============================================================================
 
 func TestString(t *testing.T) {
-	id  := IntDate(20250503)
-	sd  := id.String()
+	id := IntDate(20250503)
+	sd := id.String()
 	exp := "2025-05-03"
 
 	if sd != exp {
@@ -56,10 +56,10 @@ func TestString(t *testing.T) {
 //=============================================================================
 
 func TestParseIntDate(t *testing.T) {
-	sd  := "20250503"
+	sd := "20250503"
 	exp := IntDate(20250503)
 
-	id,err := ParseIntDate(sd, true)
+	id, err := ParseIntDate(sd, true)
 	if err != nil {
 		t.Errorf("ParseIntDate failed. Expected %v but got %v", exp, id)
 	}
@@ -68,7 +68,7 @@ func TestParseIntDate(t *testing.T) {
 
 	sd = "-20250503"
 
-	id,err = ParseIntDate(sd, true)
+	id, err = ParseIntDate(sd, true)
 	if err == nil {
 		t.Errorf("ParseIntDate failed. Date is indicated as valid but it is not: %v", id)
 	}
@@ -77,9 +77,31 @@ func TestParseIntDate(t *testing.T) {
 
 	sd = ""
 
-	id,err = ParseIntDate(sd, false)
+	id, err = ParseIntDate(sd, false)
 	if err != nil || !id.IsNil() {
 		t.Errorf("ParseIntDate failed. Date is nil but got a valid date: %v", id)
+	}
+}
+
+//=============================================================================
+
+func TestDays(t *testing.T) {
+	s := IntDate(20250503)
+	d := IntDate(20250505)
+
+	if s.Days(d) != 2 {
+		t.Errorf("Days failed. Expected %v but got %v", 2, s.Days(d))
+	}
+}
+
+//=============================================================================
+
+func TestDaysLeap(t *testing.T) {
+	s := IntDate(20240302)
+	d := IntDate(20240228)
+
+	if s.Days(d) != -3 {
+		t.Errorf("Days failed. Expected %v but got %v", -3, s.Days(d))
 	}
 }
 

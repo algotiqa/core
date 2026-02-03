@@ -38,7 +38,7 @@ type IntDate int
 //=============================================================================
 
 func (dt IntDate) Year() int {
-	return  int(dt / 10000)
+	return int(dt / 10000)
 }
 
 //=============================================================================
@@ -75,19 +75,19 @@ func (dt IntDate) IsValid() bool {
 	d := dt.Day()
 	m := dt.Month()
 
-	if m<1 || m>12 {
+	if m < 1 || m > 12 {
 		return false
 	}
 
-	if m==4 || m==6 || m==9 || m==11 {
-		return d>=1 && d<=30
+	if m == 4 || m == 6 || m == 9 || m == 11 {
+		return d >= 1 && d <= 30
 	}
 
-	if m==2 {
-		return d>=1 && d<=29
+	if m == 2 {
+		return d >= 1 && d <= 29
 	}
 
-	return d>=1 && d<=31
+	return d >= 1 && d <= 31
 }
 
 //=============================================================================
@@ -109,10 +109,10 @@ func (dt IntDate) ToDateTime(endDay bool, loc *time.Location) time.Time {
 //=============================================================================
 
 func (dt IntDate) AddDays(days int) IntDate {
-	t := dt.ToDateTime(false,time.UTC)
+	t := dt.ToDateTime(false, time.UTC)
 	t = t.Add(time.Duration(days) * 24 * time.Hour)
 
-	y,m,d := t.Date()
+	y, m, d := t.Date()
 
 	return IntDate(y*10000 + int(m)*100 + d)
 }
@@ -121,6 +121,16 @@ func (dt IntDate) AddDays(days int) IntDate {
 
 func (dt IntDate) IsToday(loc *time.Location) bool {
 	return dt == Today(loc)
+}
+
+//=============================================================================
+
+func (dt IntDate) Days(d IntDate) int {
+	ts := dt.ToDateTime(false, time.UTC)
+	td := d.ToDateTime(false, time.UTC)
+	seconds := td.Unix() - ts.Unix()
+
+	return int(seconds / 3600 / 24)
 }
 
 //=============================================================================
@@ -134,7 +144,7 @@ func ToIntDate(t *time.Time) IntDate {
 		return 0
 	}
 
-	y,m,d := t.Date()
+	y, m, d := t.Date()
 
 	return IntDate(y*10000 + int(m)*100 + d)
 }
@@ -147,10 +157,10 @@ func ParseIntDate(value string, required bool) (IntDate, error) {
 			return 0, errors.New("Value is required")
 		}
 
-		return 0,nil
+		return 0, nil
 	}
 
-	d,err := strconv.Atoi(value)
+	d, err := strconv.Atoi(value)
 	if err != nil {
 		return 0, err
 	}
