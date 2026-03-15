@@ -1,6 +1,6 @@
 //=============================================================================
 /*
-Copyright © 2023 Andrea Carboni andrea.carboni71@gmail.com
+Copyright © 2026 Andrea Carboni andrea.carboni71@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,84 +25,106 @@ THE SOFTWARE.
 package datatype
 
 import (
-	"testing"
-	"time"
+	"errors"
+	"fmt"
+	"strconv"
 )
 
 //=============================================================================
 
-func TestToIntDate(t *testing.T) {
-	td := time.Date(2025, 05, 03, 11, 12, 13, 0, time.UTC)
-	id := ToIntDate(&td)
-	exp := IntDate(20250503)
+const NilValue int = 9999
 
-	if id != exp {
-		t.Errorf("ToIntDate failed. Expected %v but got %v", exp, id)
-	}
+type IntTime int
+
+//=============================================================================
+
+func (it IntTime) Hour() int {
+	return int(it / 100)
 }
 
 //=============================================================================
 
-func TestStringDate(t *testing.T) {
-	id := IntDate(20250503)
-	sd := id.String()
-	exp := "2025-05-03"
-
-	if sd != exp {
-		t.Errorf("String() failed. Expected %v but got %v", exp, sd)
-	}
+func (it IntTime) Minute() int {
+	return int(it % 100)
 }
 
 //=============================================================================
 
-func TestParseIntDate(t *testing.T) {
-	sd := "20250503"
-	exp := IntDate(20250503)
+func (it IntTime) String() string {
+	return fmt.Sprintf("%02d:%02d", it.Hour(), it.Minute())
+}
 
-	id, err := ParseIntDate(sd, true)
+//=============================================================================
+
+func (it IntTime) IsNil() bool {
+	return it == 9999
+}
+
+//=============================================================================
+
+func (it IntTime) IsValid() bool {
+	if it < 0 {
+		return false
+	}
+
+	h := it.Hour()
+	m := it.Minute()
+
+	if h < 0 || h > 23 {
+		return false
+	}
+	if m < 0 || m > 59 {
+		return false
+	}
+
+	return true
+}
+
+//=============================================================================
+
+func (it IntTime) AddMinutes(mins int) IntTime {
+	totMins := it.Hour()*60 + it.Minute()
+	finMins := totMins + mins
+
+	hh := finMins / 60
+	mm := finMins % 60
+
+	return NewIntTime(hh, mm)
+}
+
+//=============================================================================
+//===
+//=== General functions
+//===
+//=============================================================================
+
+func NewIntTime(hours, mins int) IntTime {
+	return IntTime(hours*100 + mins)
+}
+
+//=============================================================================
+
+func ParseIntTime(value string, required bool) (IntTime, error) {
+	if value == "" {
+		if required {
+			return 0, errors.New("Value is required")
+		}
+
+		return IntTime(NilValue), nil
+	}
+
+	t, err := strconv.Atoi(value)
 	if err != nil {
-		t.Errorf("ParseIntDate failed. Expected %v but got %v", exp, id)
+		return 0, err
 	}
 
-	//---
+	it := IntTime(t)
 
-	sd = "-20250503"
-
-	id, err = ParseIntDate(sd, true)
-	if err == nil {
-		t.Errorf("ParseIntDate failed. Date is indicated as valid but it is not: %v", id)
+	if !it.IsValid() {
+		return 0, errors.New("Invalid time")
 	}
 
-	//---
-
-	sd = ""
-
-	id, err = ParseIntDate(sd, false)
-	if err != nil || !id.IsNil() {
-		t.Errorf("ParseIntDate failed. Date is nil but got a valid date: %v", id)
-	}
-}
-
-//=============================================================================
-
-func TestDays(t *testing.T) {
-	s := IntDate(20250503)
-	d := IntDate(20250505)
-
-	if s.Days(d) != 2 {
-		t.Errorf("Days failed. Expected %v but got %v", 2, s.Days(d))
-	}
-}
-
-//=============================================================================
-
-func TestDaysLeap(t *testing.T) {
-	s := IntDate(20240302)
-	d := IntDate(20240228)
-
-	if s.Days(d) != -3 {
-		t.Errorf("Days failed. Expected %v but got %v", -3, s.Days(d))
-	}
+	return it, nil
 }
 
 //=============================================================================

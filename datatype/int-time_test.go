@@ -1,6 +1,6 @@
 //=============================================================================
 /*
-Copyright © 2023 Andrea Carboni andrea.carboni71@gmail.com
+Copyright © 2026 Andrea Carboni andrea.carboni71@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,82 +26,79 @@ package datatype
 
 import (
 	"testing"
-	"time"
 )
 
 //=============================================================================
 
-func TestToIntDate(t *testing.T) {
-	td := time.Date(2025, 05, 03, 11, 12, 13, 0, time.UTC)
-	id := ToIntDate(&td)
-	exp := IntDate(20250503)
+func TestStringTime(t *testing.T) {
+	it := IntTime(905)
+	st := it.String()
+	exp := "09:05"
 
-	if id != exp {
-		t.Errorf("ToIntDate failed. Expected %v but got %v", exp, id)
+	if st != exp {
+		t.Errorf("String failed. Expected %v but got %v", exp, st)
 	}
 }
 
 //=============================================================================
 
-func TestStringDate(t *testing.T) {
-	id := IntDate(20250503)
-	sd := id.String()
-	exp := "2025-05-03"
+func TestParseIntTime(t *testing.T) {
+	st := "1245"
+	exp := IntTime(1245)
 
-	if sd != exp {
-		t.Errorf("String() failed. Expected %v but got %v", exp, sd)
-	}
-}
-
-//=============================================================================
-
-func TestParseIntDate(t *testing.T) {
-	sd := "20250503"
-	exp := IntDate(20250503)
-
-	id, err := ParseIntDate(sd, true)
+	it, err := ParseIntTime(st, true)
 	if err != nil {
-		t.Errorf("ParseIntDate failed. Expected %v but got %v", exp, id)
+		t.Errorf("ParseIntTime failed. Expected %v but got %v", exp, it)
 	}
 
 	//---
 
-	sd = "-20250503"
+	st = "-234"
 
-	id, err = ParseIntDate(sd, true)
+	it, err = ParseIntTime(st, true)
 	if err == nil {
-		t.Errorf("ParseIntDate failed. Date is indicated as valid but it is not: %v", id)
+		t.Errorf("ParseIntTime failed. Time is indicated as valid but it is not: %v", it)
 	}
 
 	//---
 
-	sd = ""
+	st = ""
 
-	id, err = ParseIntDate(sd, false)
-	if err != nil || !id.IsNil() {
-		t.Errorf("ParseIntDate failed. Date is nil but got a valid date: %v", id)
+	it, err = ParseIntTime(st, false)
+	if err != nil || !it.IsNil() {
+		t.Errorf("ParseIntTime failed. Time is nil but got a valid date: %v", it)
 	}
 }
 
 //=============================================================================
 
-func TestDays(t *testing.T) {
-	s := IntDate(20250503)
-	d := IntDate(20250505)
+func TestAddMinutes(t *testing.T) {
+	it := IntTime(1025).AddMinutes(30)
+	exp := IntTime(1055)
 
-	if s.Days(d) != 2 {
-		t.Errorf("Days failed. Expected %v but got %v", 2, s.Days(d))
+	if it != exp {
+		t.Errorf("AddMinutes failed. Expected %v but got %v", exp, it)
 	}
-}
 
-//=============================================================================
+	it = IntTime(1025).AddMinutes(45)
+	exp = IntTime(1110)
 
-func TestDaysLeap(t *testing.T) {
-	s := IntDate(20240302)
-	d := IntDate(20240228)
+	if it != exp {
+		t.Errorf("AddMinutes failed. Expected %v but got %v", exp, it)
+	}
 
-	if s.Days(d) != -3 {
-		t.Errorf("Days failed. Expected %v but got %v", -3, s.Days(d))
+	it = IntTime(1025).AddMinutes(-30)
+	exp = IntTime(955)
+
+	if it != exp {
+		t.Errorf("AddMinutes failed. Expected %v but got %v", exp, it)
+	}
+
+	it = IntTime(1025).AddMinutes(-61)
+	exp = IntTime(924)
+
+	if it != exp {
+		t.Errorf("AddMinutes failed. Expected %v but got %v", exp, it)
 	}
 }
 
