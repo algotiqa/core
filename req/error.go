@@ -51,7 +51,7 @@ func (e AppError) Error() string {
 func NewBadRequestError(message string, params ...any) error {
 	return AppError {
 		Code:    http.StatusBadRequest,
-		Message: fmt.Sprintf(message, params),
+		Message: sprintf(message, params),
 	}
 }
 
@@ -60,7 +60,7 @@ func NewBadRequestError(message string, params ...any) error {
 func NewForbiddenError(message string, params ...any) error {
 	return AppError {
 		Code:    http.StatusForbidden,
-		Message: fmt.Sprintf(message, params),
+		Message: sprintf(message, params),
 	}
 }
 
@@ -69,7 +69,7 @@ func NewForbiddenError(message string, params ...any) error {
 func NewNotFoundError(message string, params ...any) error {
 	return AppError {
 		Code:    http.StatusNotFound,
-		Message: fmt.Sprintf(message, params),
+		Message: sprintf(message, params),
 	}
 }
 
@@ -78,7 +78,7 @@ func NewNotFoundError(message string, params ...any) error {
 func NewUnprocessableEntityError(message string, params ...any) error {
 	return AppError {
 		Code:    http.StatusUnprocessableEntity,
-		Message: fmt.Sprintf(message, params),
+		Message: sprintf(message, params),
 	}
 }
 
@@ -87,7 +87,7 @@ func NewUnprocessableEntityError(message string, params ...any) error {
 func NewServerError(message string, params ...any) error {
 	return AppError {
 		Code:    http.StatusInternalServerError,
-		Message: fmt.Sprintf(message, params),
+		Message: sprintf(message, params),
 	}
 }
 
@@ -96,7 +96,7 @@ func NewServerError(message string, params ...any) error {
 func NewServiceUnavailableError(message string, params ...any) error {
 	return AppError {
 		Code:    http.StatusServiceUnavailable,
-		Message: fmt.Sprintf(message, params),
+		Message: sprintf(message, params),
 	}
 }
 
@@ -161,6 +161,16 @@ func writeError(c *gin.Context, errorCode int, errorMessage string) {
 		Code:    errorCode,
 		Error:   errorMessage,
 	})
+}
+
+//=============================================================================
+
+func sprintf(message string, params ...any) string {
+	if params != nil {
+		message = fmt.Sprintf(message, params...)
+	}
+
+	return message
 }
 
 //=============================================================================
