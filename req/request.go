@@ -148,11 +148,11 @@ func GetParamAsString(c *gin.Context, name string, defValue string) string {
 
 //=============================================================================
 
-func GetParamAsStrings(c *gin.Context, name string) ([]string, error) {
+func GetParamAsStrings(c *gin.Context, name string) []string  {
 	params := c.Request.URL.Query()
 	values, ok := params[name]
 	if !ok {
-		return nil, nil
+		return nil
 	}
 
 	var res []string
@@ -161,7 +161,7 @@ func GetParamAsStrings(c *gin.Context, name string) ([]string, error) {
 		res = append(res, value)
 	}
 
-	return res, nil
+	return res
 }
 
 //=============================================================================

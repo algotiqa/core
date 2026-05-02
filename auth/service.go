@@ -25,10 +25,11 @@ THE SOFTWARE.
 package auth
 
 import (
-	"github.com/algotiqa/core/req"
-	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
+
+	"github.com/algotiqa/core/req"
+	"github.com/gin-gonic/gin"
 )
 
 //=============================================================================
@@ -91,8 +92,20 @@ func (c *Context) GetParamAsInt(name string, defValue int) (int, error) {
 
 //=============================================================================
 
+func (c *Context) GetParamAsInts(name string) ([]int64, error) {
+	return req.GetParamAsInts(c.Gin, name)
+}
+
+//=============================================================================
+
 func (c *Context) GetParamAsString(name string, defValue string) string {
 	return req.GetParamAsString(c.Gin, name, defValue)
+}
+
+//=============================================================================
+
+func (c *Context) GetParamAsStrings(name string) []string {
+	return req.GetParamAsStrings(c.Gin, name)
 }
 
 //=============================================================================
