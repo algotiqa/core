@@ -128,6 +128,12 @@ func (c *Context) GetIdFromUrl() (uint, error) {
 
 //=============================================================================
 
+func (c *Context) GetIdsFromUrl() ([]uint, error) {
+	return req.GetIdsFromUrl(c.Gin)
+}
+
+//=============================================================================
+
 func (c *Context) GetId2FromUrl() (uint, error) {
 	return req.GetId2FromUrl(c.Gin)
 }
