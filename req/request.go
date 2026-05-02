@@ -201,6 +201,29 @@ func GetIdFromUrl(c *gin.Context) (uint, error) {
 
 //=============================================================================
 
+func GetIdsFromUrl(c *gin.Context) ([]uint, error) {
+	params := c.Request.URL.Query()
+	values, ok := params["id"]
+	if !ok {
+		return nil, nil
+	}
+
+	var res []uint
+
+	for _, value := range values {
+		v, err := strconv.ParseInt(value, 10, 32)
+		if err != nil {
+			return nil, NewBadRequestError("Parameter 'id' has not an integer value: %v", value)
+		}
+
+		res = append(res, uint(v))
+	}
+
+	return res, nil
+}
+
+//=============================================================================
+
 func GetId2FromUrl(c *gin.Context) (uint, error) {
 	sId := c.Param("id2")
 	iId, err := strconv.ParseInt(sId, 10, 64)
