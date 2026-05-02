@@ -27,12 +27,13 @@ package req
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 //=============================================================================
@@ -106,6 +107,29 @@ func GetParamAsInt(c *gin.Context, name string, defValue int) (int, error) {
 
 //=============================================================================
 
+func GetParamAsInts(c *gin.Context, name string) ([]int64, error) {
+	params := c.Request.URL.Query()
+	values, ok := params[name]
+	if !ok {
+		return nil, nil
+	}
+
+	var res []int64
+
+	for _, value := range values {
+		v, err := strconv.ParseInt(value, 10, 32)
+		if err != nil {
+			return nil, NewBadRequestError("Parameter '%v' has not an integer value: %v", name, value)
+		}
+
+		res = append(res, v)
+	}
+
+	return res, nil
+}
+
+//=============================================================================
+
 func GetParamAsString(c *gin.Context, name string, defValue string) string {
 	params := c.Request.URL.Query()
 
@@ -120,6 +144,24 @@ func GetParamAsString(c *gin.Context, name string, defValue string) string {
 	}
 
 	return value
+}
+
+//=============================================================================
+
+func GetParamAsStrings(c *gin.Context, name string) ([]string, error) {
+	params := c.Request.URL.Query()
+	values, ok := params[name]
+	if !ok {
+		return nil, nil
+	}
+
+	var res []string
+
+	for _, value := range values {
+		res = append(res, value)
+	}
+
+	return res, nil
 }
 
 //=============================================================================
