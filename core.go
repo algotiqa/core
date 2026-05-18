@@ -66,10 +66,19 @@ type Platform struct {
 
 //=============================================================================
 
+type Journal struct {
+	Directory       string
+	QueueSize       int
+	CompactMessages int
+}
+
+//=============================================================================
+
 type Messaging struct {
-	Address  string
-	Username string
-	Password string
+	Address    string
+	Username   string
+	Password   string
+	Journal    *Journal
 }
 
 //=============================================================================

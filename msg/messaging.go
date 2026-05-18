@@ -25,28 +25,56 @@ THE SOFTWARE.
 package msg
 
 import (
-	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/algotiqa/core"
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 //=============================================================================
 
-var url string
+var DefaultJournal = &core.Journal{
+	Directory      : ".",
+	QueueSize      : 1000,
+	CompactMessages: 1000,
+}
+
+//=============================================================================
+
+var url     string
 var channel *amqp.Channel
+var journal *Journal
+var spooler *JournalSpooler
+var config  *core.Journal
 
 //=============================================================================
 
 func InitMessaging(cfg *core.Messaging) {
-
 	slog.Info("Starting messaging...")
+
+	if cfg.Journal != nil {
+		config = cfg.Journal
+	} else {
+		config = DefaultJournal
+	}
+
+	var err error
+
+	//--- Create journal
+
+	journal,err = NewJournal(config.Directory)
+	if err != nil {
+		core.ExitWithMessage("Failed to create message journal: " + err.Error())
+	}
+
+	//--- Connect to messaging system
+
 	url = "amqp://" + cfg.Username + ":" + cfg.Password + "@" + cfg.Address + "/"
 
-	err := connect()
+	err = connect()
 	if err != nil {
 		core.ExitWithMessage("Failed to connect to the messaging system or to get a channel: " + err.Error())
 	}
@@ -78,57 +106,53 @@ func InitMessaging(cfg *core.Messaging) {
 	createExchange(ExEvent)
 	createQueue(QuAllToEvent)
 	bindQueue(ExEvent, QuAllToEvent)
-}
 
-//=============================================================================
+	//--- Create spooler (here, because the channel must be ready)
 
-func PublishToExchange(exchange string, message any) error {
-	body, err := json.Marshal(&message)
+	spooler,err = NewJournalSpooler(config.QueueSize, config.CompactMessages)
 	if err != nil {
-		slog.Error("Error marshalling message", "error", err.Error())
-		return err
+		core.ExitWithMessage("Failed to create journal spooler: " + err.Error())
 	}
-
-	if channel.IsClosed() {
-		slog.Warn("Channel is closed. Reconnecting...")
-		err = connect()
-		if err != nil {
-			return err
-		}
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	err = channel.PublishWithContext(ctx, exchange, "", false, false,
-		amqp.Publishing{
-			ContentType: "text/json",
-			Body:        body,
-		})
-
-	if err != nil {
-		slog.Error("Cannot publish a message to exchange", "exchange", exchange, "error", err.Error())
-	}
-
-	return err
 }
 
 //=============================================================================
 
 func SendMessage(exchange string, source string, msgType int, entity any) error {
+	uuidVal,err := uuid.NewUUID()
+	if err != nil {
+		return fmt.Errorf("error generating UUID: %w", err)
+	}
+
+	id := uuidVal.String()
+
 	body, err := json.Marshal(entity)
 	if err != nil {
-		slog.Error("Error marshalling message", "error", err.Error())
-		return err
+		return fmt.Errorf("error marshalling entity: %w", err)
 	}
 
 	message := &Message{
 		Source: source,
-		Type:   msgType,
+		Type  : msgType,
 		Entity: body,
 	}
 
-	return PublishToExchange(exchange, message)
+	body, err = json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("error marshalling message: %w", err)
+	}
+
+	if err = journal.Write(id, body, exchange); err != nil {
+		return fmt.Errorf("journal write failed: %w", err)
+	}
+
+	se := &SpoolerEntry{
+		Exchange: exchange,
+		Id      : id,
+		Payload : body,
+	}
+
+	spooler.Submit(se)
+	return nil
 }
 
 //=============================================================================
@@ -218,6 +242,10 @@ func connect() error {
 	conn, err := amqp.Dial(url)
 	if err == nil {
 		channel, err = conn.Channel()
+		if err == nil {
+			//--- Put the channel into confirm mode
+			err = channel.Confirm(false)
+		}
 	}
 
 	return err
