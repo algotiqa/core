@@ -62,7 +62,6 @@ type Journal struct {
 	dir     string
 	file    *os.File
 	writer  *bufio.Writer
-	encoder *gob.Encoder
 	mu      sync.Mutex
 }
 
@@ -83,7 +82,6 @@ func (j *Journal) init() (*Journal,error) {
 	j.file, err = j.createFile(JournalFile)
 	if err == nil {
 		j.writer  = bufio.NewWriter(j.file)
-		j.encoder = gob.NewEncoder(j.writer)
 	}
 	return j, err
 }
@@ -103,7 +101,7 @@ func (j *Journal) Write(id string, payload []byte, exchange string) error {
 		Payload  : payload,
 	}
 
-	return write(j.file, j.writer, j.encoder, entry, true)
+	return write(j.file, j.writer, entry, true)
 }
 
 //=============================================================================
@@ -119,7 +117,7 @@ func (j *Journal) Ack(id string) error {
 		Timestamp: time.Now(),
 	}
 
-	return write(j.file, j.writer, j.encoder, entry, true)
+	return write(j.file, j.writer, entry, true)
 }
 
 //=============================================================================
@@ -145,10 +143,10 @@ func (j *Journal) Recover() ([]*JournalEntry, error) {
 
 	pendingMap := make(map[string]*JournalEntry)
 	reader     := bufio.NewReader(j.file)
-	decoder    := gob.NewDecoder(reader)
 
 	for {
 		var entry JournalEntry
+		decoder := gob.NewDecoder(reader)
 		if err := decoder.Decode(&entry); err != nil {
 			if errors.Is(err, io.EOF) {
 				// We reached the end of the file successfully
@@ -201,13 +199,12 @@ func (j *Journal) Compact() error {
 		return err
 	}
 
-	writer  := bufio.NewWriter(file)
-	encoder := gob.NewEncoder(writer)
+	writer := bufio.NewWriter(file)
 
 	//--- Write entries into new temp file
 
 	for _, entry := range entries {
-		err = write(file, writer, encoder, entry, false)
+		err = write(file, writer, entry, false)
 		if err != nil {
 			return err
 		}
@@ -239,7 +236,6 @@ func (j *Journal) Compact() error {
 	}
 
 	j.writer = bufio.NewWriter(j.file)
-	j.encoder= gob.NewEncoder(j.writer)
 
 	return nil
 }
@@ -264,7 +260,9 @@ func (j *Journal) renameFile(oldName,newName string) error {
 
 //=============================================================================
 
-func write(file *os.File, writer *bufio.Writer, encoder *gob.Encoder, entry *JournalEntry, sync bool) error {
+func write(file *os.File, writer *bufio.Writer, entry *JournalEntry, sync bool) error {
+	encoder := gob.NewEncoder(writer)
+
 	err := encoder.Encode(entry)
 	if err != nil {
 		return err
