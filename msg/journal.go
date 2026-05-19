@@ -26,9 +26,9 @@ package msg
 
 import (
 	"bufio"
-	"encoding/json"
+	"encoding/gob"
+	"errors"
 	"io"
-	"log/slog"
 	"os"
 	"sync"
 	"time"
@@ -43,7 +43,7 @@ const (
 	StatusAcked   LogStatus = 1
 )
 
-const JournalFile = "journal.json"
+const JournalFile = "journal.bin"
 const JournalTemp = "journal.temp"
 
 //=============================================================================
@@ -59,9 +59,11 @@ type JournalEntry struct {
 //=============================================================================
 
 type Journal struct {
-	dir  string
-	file *os.File
-	mu   sync.Mutex
+	dir     string
+	file    *os.File
+	writer  *bufio.Writer
+	encoder *gob.Encoder
+	mu      sync.Mutex
 }
 
 //=============================================================================
@@ -79,7 +81,10 @@ func NewJournal(journalDir string) (*Journal, error) {
 func (j *Journal) init() (*Journal,error) {
 	var err error
 	j.file, err = j.createFile(JournalFile)
-
+	if err == nil {
+		j.writer  = bufio.NewWriter(j.file)
+		j.encoder = gob.NewEncoder(j.writer)
+	}
 	return j, err
 }
 
@@ -90,7 +95,15 @@ func (j *Journal) Write(id string, payload []byte, exchange string) error {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
-	return write(j.file, id, payload, exchange, true)
+	entry := &JournalEntry{
+		Id       : id,
+		Timestamp: time.Now(),
+		Status   : StatusPending,
+		Exchange : exchange,
+		Payload  : payload,
+	}
+
+	return write(j.file, j.writer, j.encoder, entry, true)
 }
 
 //=============================================================================
@@ -100,28 +113,23 @@ func (j *Journal) Ack(id string) error {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
-	entry := JournalEntry{
+	entry := &JournalEntry{
 		Id:        id,
 		Status:    StatusAcked,
 		Timestamp: time.Now(),
 	}
 
-	data, err := json.Marshal(entry)
-	if err != nil {
-		return err
-	}
-
-	if _, err = j.file.Write(append(data, '\n')); err != nil {
-		return err
-	}
-
-	return j.file.Sync()
+	return write(j.file, j.writer, j.encoder, entry, true)
 }
 
 //=============================================================================
 
 func (j *Journal) Close() error {
-	return j.file.Close()
+	err := j.writer.Flush()
+	if err == nil {
+		err = j.file.Close()
+	}
+	return err
 }
 
 //=============================================================================
@@ -136,13 +144,18 @@ func (j *Journal) Recover() ([]*JournalEntry, error) {
 	}
 
 	pendingMap := make(map[string]*JournalEntry)
-	scanner := bufio.NewScanner(j.file)
+	reader     := bufio.NewReader(j.file)
+	decoder    := gob.NewDecoder(reader)
 
-	for scanner.Scan() {
+	for {
 		var entry JournalEntry
-		if err := json.Unmarshal(scanner.Bytes(), &entry); err != nil {
-			slog.Warn("Recover: Skipping corrupted journal entry!")
-			continue
+		if err := decoder.Decode(&entry); err != nil {
+			if errors.Is(err, io.EOF) {
+				// We reached the end of the file successfully
+				break
+			}
+
+			return nil, errors.New("Failed to decode journal entry: "+err.Error())
 		}
 
 		if entry.Status == StatusPending {
@@ -157,7 +170,7 @@ func (j *Journal) Recover() ([]*JournalEntry, error) {
 		unresolved = append(unresolved, entry)
 	}
 
-	return unresolved, scanner.Err()
+	return unresolved, nil
 }
 
 //=============================================================================
@@ -188,13 +201,21 @@ func (j *Journal) Compact() error {
 		return err
 	}
 
+	writer  := bufio.NewWriter(file)
+	encoder := gob.NewEncoder(writer)
+
 	//--- Write entries into new temp file
 
 	for _, entry := range entries {
-		err = write(file, entry.Id, entry.Payload, entry.Exchange, false)
+		err = write(file, writer, encoder, entry, false)
 		if err != nil {
 			return err
 		}
+	}
+
+	err = writer.Flush()
+	if err != nil {
+		return err
 	}
 
 	err = file.Close()
@@ -216,6 +237,9 @@ func (j *Journal) Compact() error {
 	if err != nil {
 		panic("Could not recreate journal: " + err.Error())
 	}
+
+	j.writer = bufio.NewWriter(j.file)
+	j.encoder= gob.NewEncoder(j.writer)
 
 	return nil
 }
@@ -240,26 +264,19 @@ func (j *Journal) renameFile(oldName,newName string) error {
 
 //=============================================================================
 
-func write(file *os.File, id string, payload []byte, exchange string, forceSync bool) error {
-	entry := JournalEntry{
-		Id       : id,
-		Timestamp: time.Now(),
-		Status   : StatusPending,
-		Exchange : exchange,
-		Payload  : payload,
-	}
-
-	data, err := json.Marshal(entry)
+func write(file *os.File, writer *bufio.Writer, encoder *gob.Encoder, entry *JournalEntry, sync bool) error {
+	err := encoder.Encode(entry)
 	if err != nil {
 		return err
 	}
 
-	if _, err = file.Write(append(data, '\n')); err != nil {
+	err = writer.Flush()
+	if err != nil {
 		return err
 	}
 
-	if forceSync {
-		//--- Force the operating system to flush weights to stable storage
+	//--- Force the operating system to flush weights to stable storage
+	if sync {
 		return file.Sync()
 	}
 
