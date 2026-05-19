@@ -174,7 +174,7 @@ func (j *Journal) Recover() ([]*JournalEntry, error) {
 //=============================================================================
 // Compacts the journal file, removing all acknowledged messages
 
-func (j *Journal) Compact() error {
+func (j *Journal) Compact() (int, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
@@ -182,21 +182,21 @@ func (j *Journal) Compact() error {
 
 	err := j.deleteFile(JournalTemp)
 	if err != nil {
-		return err
+		return 0,err
 	}
 
 	//--- Retrieve current not-ack entries
 
 	entries, err := j.Recover()
 	if err != nil {
-		return err
+		return 0,err
 	}
 
 	//--- Create temp destination
 
 	file, err := j.createFile(JournalTemp)
 	if err != nil {
-		return err
+		return 0,err
 	}
 
 	writer := bufio.NewWriter(file)
@@ -206,23 +206,23 @@ func (j *Journal) Compact() error {
 	for _, entry := range entries {
 		err = write(file, writer, entry, false)
 		if err != nil {
-			return err
+			return 0,err
 		}
 	}
 
 	err = writer.Flush()
 	if err != nil {
-		return err
+		return 0,err
 	}
 
 	err = file.Close()
 	if err != nil {
-		return err
+		return 0,err
 	}
 
 	err = j.deleteFile(JournalFile)
 	if err != nil {
-		return err
+		return 0,err
 	}
 
 	err = j.renameFile(JournalTemp, JournalFile)
@@ -237,7 +237,7 @@ func (j *Journal) Compact() error {
 
 	j.writer = bufio.NewWriter(j.file)
 
-	return nil
+	return len(entries),nil
 }
 
 //=============================================================================

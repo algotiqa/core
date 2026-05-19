@@ -1,6 +1,6 @@
 //=============================================================================
 /*
-Copyright © 2023 Andrea Carboni andrea.carboni71@gmail.com
+Copyright © 2026 Andrea Carboni andrea.carboni71@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,79 +22,90 @@ THE SOFTWARE.
 */
 //=============================================================================
 
-package core
+package msg
 
 import (
 	"log/slog"
-	"os"
+	"time"
+
+	"github.com/algotiqa/core/db"
+	"gorm.io/gorm"
 )
 
 //=============================================================================
 
-type Application struct {
-	BindAddress string
-	Production  bool
-	Debug       bool
+func InitDbSpooler(pollInterval int) {
+	slog.Info("Starting DB spooler...")
+
+	ticker := time.NewTicker(time.Duration(pollInterval) * time.Second)
+
+	go func() {
+		for range ticker.C {
+			runDbSpooler()
+		}
+	}()
 }
 
 //=============================================================================
 
-type Database struct {
-	Address  string
-	Name     string
-	Username string
-	Password string
+func addOutboxMessage(tx *gorm.DB, id string, payload []byte, exchange string) (err error) {
+	om := &db.OutboxMessage{
+		Timestamp: time.Now(),
+		Exchange : exchange,
+		Uuid     : id,
+		Payload  : payload,
+	}
+
+	return db.AddOutboxMessage(tx, om)
 }
 
 //=============================================================================
 
-type Authentication struct {
-	Authority    string
-	ClientId     string
-	ClientSecret string
-}
-
-//=============================================================================
-
-type Platform struct {
-	System    string
-	Inventory string
-	Data      string
-	Storage   string
-	Portfolio string
-}
-
-//=============================================================================
-
-type Journal struct {
-	Directory       string
-	QueueSize       int
-	CompactMessages int
-	DbSpoolInterval int
-}
-
-//=============================================================================
-
-type Messaging struct {
-	Address    string
-	Username   string
-	Password   string
-	Journal    *Journal
-}
-
-//=============================================================================
-
-func ExitIfError(err error) {
+func runDbSpooler() {
+	list,err := getOutboxMessages()
 	if err != nil {
-		ExitWithMessage(err.Error())
+		slog.Error("runDbSpooler: Error getting outbox messages", "error", err)
+	}
+
+	for _, om := range *list {
+		err = publish(om.Uuid, om.Payload, om.Exchange)
+		if err != nil {
+			slog.Error("runDbSpooler: Error sending message", "error", err, "id", om.Id)
+			return
+		}
+
+		err = deleteMessage(om.Id)
+		if err != nil {
+			slog.Error("runDbSpooler: Error deleting message", "error", err, "id", om.Id)
+			return
+		}
+	}
+
+	if len(*list) != 0 {
+		slog.Info("runDbSpooler: Sent messages", "count", len(*list))
 	}
 }
 
 //=============================================================================
 
-func ExitWithMessage(message string) {
-	slog.Error(message)
-	os.Exit(1)
+func getOutboxMessages() (*[]db.OutboxMessage, error) {
+	var list *[]db.OutboxMessage
+
+	err := db.RunInTransaction(func(tx *gorm.DB) error {
+		var err error
+		list, err = db.GetOutboxMessages(tx)
+		return err
+	})
+
+	return list, err
+}
+
+//=============================================================================
+
+func deleteMessage(id uint) error {
+	return db.RunInTransaction(func(tx *gorm.DB) error {
+		return db.DeleteOutboxMessage(tx, id)
+	})
 }
 
 //=============================================================================

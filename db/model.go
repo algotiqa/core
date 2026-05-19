@@ -1,6 +1,6 @@
 //=============================================================================
 /*
-Copyright © 2023 Andrea Carboni andrea.carboni71@gmail.com
+Copyright © 2026 Andrea Carboni andrea.carboni71@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,79 +22,22 @@ THE SOFTWARE.
 */
 //=============================================================================
 
-package core
+package db
 
-import (
-	"log/slog"
-	"os"
-)
+import "time"
 
 //=============================================================================
 
-type Application struct {
-	BindAddress string
-	Production  bool
-	Debug       bool
+type OutboxMessage struct {
+	Id        uint      `gorm:"primaryKey"`
+	Timestamp time.Time
+	Exchange  string
+	Uuid      string
+	Payload   []byte
 }
 
 //=============================================================================
 
-type Database struct {
-	Address  string
-	Name     string
-	Username string
-	Password string
-}
-
-//=============================================================================
-
-type Authentication struct {
-	Authority    string
-	ClientId     string
-	ClientSecret string
-}
-
-//=============================================================================
-
-type Platform struct {
-	System    string
-	Inventory string
-	Data      string
-	Storage   string
-	Portfolio string
-}
-
-//=============================================================================
-
-type Journal struct {
-	Directory       string
-	QueueSize       int
-	CompactMessages int
-	DbSpoolInterval int
-}
-
-//=============================================================================
-
-type Messaging struct {
-	Address    string
-	Username   string
-	Password   string
-	Journal    *Journal
-}
-
-//=============================================================================
-
-func ExitIfError(err error) {
-	if err != nil {
-		ExitWithMessage(err.Error())
-	}
-}
-
-//=============================================================================
-
-func ExitWithMessage(message string) {
-	slog.Error(message)
-	os.Exit(1)
-}
+func (OutboxMessage) TableName() string { return "outbox" }
 
 //=============================================================================

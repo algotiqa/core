@@ -22,79 +22,59 @@ THE SOFTWARE.
 */
 //=============================================================================
 
-package core
+package db
 
 import (
 	"log/slog"
-	"os"
+	"time"
+
+	"github.com/algotiqa/core"
+	"gorm.io/driver/mysql"
+
+	"gorm.io/gorm"
 )
 
 //=============================================================================
 
-type Application struct {
-	BindAddress string
-	Production  bool
-	Debug       bool
-}
+var dbms *gorm.DB
 
 //=============================================================================
 
-type Database struct {
-	Address  string
-	Name     string
-	Username string
-	Password string
-}
+func InitDatabase(cfg *core.Database) {
 
-//=============================================================================
+	slog.Info("Starting database...")
+	url := cfg.Username + ":" + cfg.Password + "@tcp(" + cfg.Address + ")/" + cfg.Name + "?charset=utf8mb4&parseTime=True"
 
-type Authentication struct {
-	Authority    string
-	ClientId     string
-	ClientSecret string
-}
+	dialector := mysql.New(mysql.Config{
+		DSN:                       url,
+		DefaultStringSize:         256,
+		DisableDatetimePrecision:  false,
+		DontSupportRenameIndex:    false,
+		DontSupportRenameColumn:   true,
+		SkipInitializeWithVersion: false,
+	})
 
-//=============================================================================
-
-type Platform struct {
-	System    string
-	Inventory string
-	Data      string
-	Storage   string
-	Portfolio string
-}
-
-//=============================================================================
-
-type Journal struct {
-	Directory       string
-	QueueSize       int
-	CompactMessages int
-	DbSpoolInterval int
-}
-
-//=============================================================================
-
-type Messaging struct {
-	Address    string
-	Username   string
-	Password   string
-	Journal    *Journal
-}
-
-//=============================================================================
-
-func ExitIfError(err error) {
+	db, err := gorm.Open(dialector, &gorm.Config{})
 	if err != nil {
-		ExitWithMessage(err.Error())
+		core.ExitWithMessage("Failed to connect to the database: " + err.Error())
+	} else {
+		sqlDB, err := db.DB()
+		if err != nil {
+			core.ExitWithMessage("Failed to connect to create database pool: " + err.Error())
+		} else {
+			sqlDB.SetConnMaxLifetime(time.Minute * 3)
+			sqlDB.SetMaxOpenConns(50)
+			sqlDB.SetMaxIdleConns(10)
+		}
+
+		dbms = db
 	}
 }
 
 //=============================================================================
 
-func ExitWithMessage(message string) {
-	slog.Error(message)
-	os.Exit(1)
+func RunInTransaction(f func(tx *gorm.DB) error) error {
+	return dbms.Transaction(f)
 }
 
 //=============================================================================

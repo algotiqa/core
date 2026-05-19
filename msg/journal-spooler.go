@@ -25,10 +25,11 @@ THE SOFTWARE.
 package msg
 
 import (
+	"errors"
+	"fmt"
 	"log/slog"
+	"sync"
 	"time"
-
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 //=============================================================================
@@ -51,8 +52,10 @@ type SpoolerEntry struct {
 
 type JournalSpooler struct {
 	queue           chan *SpoolerEntry
+	queueSize       int
 	compactMessages int
 	writtenMessages int
+	mu              sync.Mutex
 }
 
 //=============================================================================
@@ -60,6 +63,7 @@ type JournalSpooler struct {
 func NewJournalSpooler(queueSize int, compactMessages int) (*JournalSpooler, error) {
 	s := &JournalSpooler{
 		queue          : make(chan *SpoolerEntry, queueSize),
+		queueSize      : queueSize,
 		compactMessages: compactMessages,
 	}
 	go s.worker()
@@ -68,9 +72,30 @@ func NewJournalSpooler(queueSize int, compactMessages int) (*JournalSpooler, err
 }
 
 //=============================================================================
+// Given that UUId and JSON conversion always work, the only possible error cases are:
+//  - Queue full
+//  - Error writing to the journal
 
-func (s *JournalSpooler) Submit(se *SpoolerEntry) {
+func (s *JournalSpooler) Submit(id string, payload []byte, exchange string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if len(s.queue) == s.queueSize {
+		return errors.New("queue is full")
+	}
+
+	if err := journal.Write(id, payload, exchange); err != nil {
+		return fmt.Errorf("journal write failed: %w", err)
+	}
+
+	se := &SpoolerEntry{
+		Exchange: exchange,
+		Id      : id,
+		Payload : payload,
+	}
+
 	s.queue <- se
+	return nil
 }
 
 //=============================================================================
@@ -103,12 +128,17 @@ func (s *JournalSpooler) run(se *SpoolerEntry) {
 	errorFlag := false
 
 	for {
-		err := s.publish(se)
+		err := publish(se.Id, se.Payload, se.Exchange)
 		if err == nil {
-			if errorFlag {
-				slog.Info("Message retried with success", "exchange", se.Exchange, "id", se.Id)
+			err = journal.Ack(se.Id)
+			if err != nil {
+				slog.Error("Failed to write ACK to journal", "exchange", se.Exchange, "id", se.Id, "error", err.Error())
+			} else {
+				if errorFlag {
+					slog.Info("Message retried with success", "exchange", se.Exchange, "id", se.Id)
+				}
+				break
 			}
-			break
 		}
 		errorFlag = true
 		time.Sleep(time.Millisecond * 1000)
@@ -117,52 +147,16 @@ func (s *JournalSpooler) run(se *SpoolerEntry) {
 	s.writtenMessages++
 
 	if s.writtenMessages >= s.compactMessages {
-		err := journal.Compact()
+		start := time.Now()
+		count,err := journal.Compact()
+		duration := time.Now().Sub(start)
 		if err != nil {
 			slog.Error("Could not compact journal: " + err.Error())
 		} else {
-			s.writtenMessages = 0
+			s.writtenMessages = count
+			slog.Info("Journal compacted successfully", "count", count, "time", duration.Seconds())
 		}
 	}
-}
-
-//=============================================================================
-
-func (s *JournalSpooler) publish(se *SpoolerEntry) error {
-	if channel.IsClosed() {
-		slog.Warn("publish: Channel is closed. Reconnecting...")
-		err := connect()
-		if err != nil {
-			slog.Error("publish: Reconnect failure", "error", err.Error())
-			return err
-		}
-		slog.Info("publish: Reconnected successfully")
-	}
-
-	dc,err := channel.PublishWithDeferredConfirm(se.Exchange, "", false, false,
-		amqp.Publishing{
-			MessageId   : se.Id,
-			ContentType :"application/json",
-			Body        : se.Payload,
-			DeliveryMode: amqp.Persistent, // Ensure RabbitMQ persists it to disk too
-		})
-
-	if err != nil {
-		slog.Error("Cannot publish a message to exchange", "exchange", se.Exchange, "id", se.Id, "error", err.Error())
-		return err
-	}
-
-	if !dc.Wait() {
-		slog.Error("Messaging system didn't ACK the message", "exchange", se.Exchange, "id", se.Id,)
-		return err
-	}
-
-	if err = journal.Ack(se.Id); err != nil {
-		slog.Error("Failed to write ACK to journal", "exchange", se.Exchange, "id", se.Id, "error", err.Error())
-		return err
-	}
-
-	return nil
 }
 
 //=============================================================================
@@ -172,12 +166,10 @@ func (s *JournalSpooler) recover() error {
 
 	if err == nil {
 		for _, entry := range entries {
-			se := &SpoolerEntry{
-				Exchange: entry.Exchange,
-				Id:       entry.Id,
-				Payload:  entry.Payload,
+			err = s.Submit(entry.Id, entry.Payload, entry.Exchange)
+			if err != nil {
+				return err
 			}
-			s.Submit(se)
 		}
 	}
 

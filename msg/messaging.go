@@ -32,17 +32,12 @@ import (
 	"github.com/algotiqa/core"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"gorm.io/gorm"
 )
 
 //=============================================================================
-
-var DefaultJournal = &core.Journal{
-	Directory      : ".",
-	QueueSize      : 1000,
-	CompactMessages: 1000,
-}
-
-//=============================================================================
+// Note: 1000 messages could eat (more or less) 700MB of memory. This is due to the
+//       data from agents (each trading system with full history could be 700KB)
 
 var url     string
 var channel *amqp.Channel
@@ -55,11 +50,7 @@ var config  *core.Journal
 func InitMessaging(cfg *core.Messaging) {
 	slog.Info("Starting messaging...")
 
-	if cfg.Journal != nil {
-		config = cfg.Journal
-	} else {
-		config = DefaultJournal
-	}
+	config = cfg.Journal
 
 	var err error
 
@@ -113,11 +104,15 @@ func InitMessaging(cfg *core.Messaging) {
 	if err != nil {
 		core.ExitWithMessage("Failed to create journal spooler: " + err.Error())
 	}
+
+	if config.DbSpoolInterval > 0 {
+		InitDbSpooler(config.DbSpoolInterval)
+	}
 }
 
 //=============================================================================
 
-func SendMessage(exchange string, source string, msgType int, entity any) error {
+func SendMessage(exchange string, source string, msgType int, entity any, tx *gorm.DB) error {
 	uuidVal,err := uuid.NewUUID()
 	if err != nil {
 		return fmt.Errorf("error generating UUID: %w", err)
@@ -141,18 +136,11 @@ func SendMessage(exchange string, source string, msgType int, entity any) error 
 		return fmt.Errorf("error marshalling message: %w", err)
 	}
 
-	if err = journal.Write(id, body, exchange); err != nil {
-		return fmt.Errorf("journal write failed: %w", err)
+	if tx == nil {
+		return spooler.Submit(id, body, exchange)
 	}
 
-	se := &SpoolerEntry{
-		Exchange: exchange,
-		Id      : id,
-		Payload : body,
-	}
-
-	spooler.Submit(se)
-	return nil
+	return addOutboxMessage(tx, id, body, exchange)
 }
 
 //=============================================================================
@@ -249,6 +237,40 @@ func connect() error {
 	}
 
 	return err
+}
+
+//=============================================================================
+
+func publish(id string, payload []byte, exchange string) error {
+	if channel.IsClosed() {
+		slog.Warn("publish: Channel is closed. Reconnecting...")
+		err := connect()
+		if err != nil {
+			slog.Error("publish: Reconnect failure", "error", err.Error())
+			return err
+		}
+		slog.Info("publish: Reconnected successfully")
+	}
+
+	dc,err := channel.PublishWithDeferredConfirm(exchange, "", false, false,
+		amqp.Publishing{
+			MessageId   : id,
+			ContentType :"application/json",
+			Body        : payload,
+			DeliveryMode: amqp.Persistent, // Ensure RabbitMQ persists it to disk too
+		})
+
+	if err != nil {
+		slog.Error("Cannot publish a message to exchange", "exchange", exchange, "id", id, "error", err.Error())
+		return err
+	}
+
+	if !dc.Wait() {
+		slog.Error("Messaging system didn't ACK the message", "exchange", exchange, "id", id,)
+		return err
+	}
+
+	return nil
 }
 
 //=============================================================================
