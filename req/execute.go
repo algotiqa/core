@@ -30,12 +30,13 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"github.com/algotiqa/core"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/algotiqa/core"
 )
 
 //=============================================================================
@@ -43,6 +44,7 @@ import (
 const (
 	ApplicationJson = "application/json"
 	OnBehalfOf      = "OnBehalfOf"
+	Algotiqa        = "Algotiqa"
 )
 
 //=============================================================================
@@ -55,8 +57,20 @@ var clientMap = map[string]*http.Client{}
 //===
 //=============================================================================
 
+func AddAlgotiqaClient(caCert string, clientCert string, clientKey string) {
+	AddClient(Algotiqa, caCert, clientCert, clientKey)
+}
+
+//=============================================================================
+
 func AddClient(id string, caCert string, clientCert string, clientKey string) {
 	clientMap[id] = createClient(caCert, clientCert, clientKey)
+}
+
+//=============================================================================
+
+func GetAlgotiqaClient() *http.Client {
+	return GetClient(Algotiqa)
 }
 
 //=============================================================================
