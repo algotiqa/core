@@ -24,7 +24,11 @@ THE SOFTWARE.
 
 package msg
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 //=============================================================================
 //===
@@ -54,7 +58,7 @@ type Event struct {
 
 //=============================================================================
 
-func SendEventByCode(username string, code string, params map[string]any) error {
+func SendEventByCode(username string, code string, params map[string]any, tx *gorm.DB) error {
 	e := Event{
 		Username  : username,
 		EventDate : time.Now(),
@@ -62,12 +66,12 @@ func SendEventByCode(username string, code string, params map[string]any) error 
 		Parameters: params,
 	}
 
-	return SendMessage(ExEvent, SourceEvent, TypeCreate, e)
+	return SendMessage(ExEvent, SourceEvent, TypeCreate, e, tx)
 }
 
 //=============================================================================
 
-func SendEvent(username string, level EventLevel, title, message string, params map[string]any) error {
+func SendEvent(username string, level EventLevel, title, message string, params map[string]any, tx *gorm.DB) error {
 	e := Event{
 		Username  : username,
 		Level     : level,
@@ -77,7 +81,7 @@ func SendEvent(username string, level EventLevel, title, message string, params 
 		Parameters: params,
 	}
 
-	return SendMessage(ExEvent, SourceEvent, TypeCreate, e)
+	return SendMessage(ExEvent, SourceEvent, TypeCreate, e, tx)
 }
 
 //=============================================================================
