@@ -66,24 +66,24 @@ const (
 //=============================================================================
 
 const (
-	ExInventory            = "bf.inventory"
-	QuInventoryToPortfolio = "bf.inventory:portfolio"
-	QuInventoryToCollector = "bf.inventory:collector"
-	QuInventoryToStorage   = "bf.inventory:storage"
+	ExInventory            = "algotiqa.inventory"
+	QuInventoryToPortfolio = "algotiqa.inventory:portfolio"
+	QuInventoryToCollector = "algotiqa.inventory:collector"
+	QuInventoryToStorage   = "algotiqa.inventory:storage"
 
-	ExCollector            = "bf.collector"
-	QuCollectorToInternal  = "bf.collector:internal"
+	ExCollector            = "algotiqa.collector"
+	QuCollectorToInternal  = "algotiqa.collector:internal"
 
-	ExRuntime              = "bf.runtime"
-	QuRuntimeToPortfolio   = "bf.runtime:portfolio"
+	ExRuntime              = "algotiqa.runtime"
+	QuRuntimeToPortfolio   = "algotiqa.runtime:portfolio"
 
-	ExSystem               = "bf.system"
-	QuSystemToInventory    = "bf.system:inventory"
-	QuSystemToCollector    = "bf.system:collector"
-	QuSystemToPortfolio    = "bf.system:portfolio"
+	ExSystem               = "algotiqa.system"
+	QuSystemToInventory    = "algotiqa.system:inventory"
+	QuSystemToCollector    = "algotiqa.system:collector"
+	QuSystemToPortfolio    = "algotiqa.system:portfolio"
 
-	ExEvent                = "bf.event"
-	QuAllToEvent           = "bf.all:event"
+	ExEvent                = "algotiqa.event"
+	QuAllToEvent           = "algotiqa.all:event"
 )
 
 //=============================================================================

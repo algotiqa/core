@@ -70,7 +70,7 @@ var restContext *RestContext
 //=============================================================================
 
 func InitAuthentication(auth *core.Authentication) {
-	client := req.GetClient("bf")
+	client := req.GetClient("algotiqa")
 	ccontext := oidc.ClientContext(context.Background(), client)
 	provider, err := oidc.NewProvider(ccontext, auth.Authority)
 	core.ExitIfError(err)
