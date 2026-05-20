@@ -54,6 +54,7 @@ func addOutboxMessage(tx *gorm.DB, id string, payload []byte, exchange string) (
 		Exchange : exchange,
 		Uuid     : id,
 		Payload  : payload,
+		Size     : len(payload),
 	}
 
 	return dbms.AddOutboxMessage(tx, om)

@@ -34,6 +34,7 @@ type OutboxMessage struct {
 	Exchange  string
 	Uuid      string
 	Payload   []byte
+	Size      int
 }
 
 //=============================================================================
