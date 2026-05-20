@@ -33,7 +33,7 @@ import (
 
 func GetOutboxMessages(tx *gorm.DB) (*[]OutboxMessage, error) {
 	var list []OutboxMessage
-	res := tx.Find(&list, "order by id")
+	res := tx.Find(&list).Order("id").Limit(1000)
 
 	if res.Error != nil {
 		return nil, req.NewServerErrorByError(res.Error)
