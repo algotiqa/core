@@ -44,7 +44,7 @@ import (
 const (
 	ApplicationJson = "application/json"
 	OnBehalfOf      = "OnBehalfOf"
-	Algotiqa        = "Algotiqa"
+	DefaultClient   = "algotiqa"
 )
 
 //=============================================================================
@@ -57,8 +57,8 @@ var clientMap = map[string]*http.Client{}
 //===
 //=============================================================================
 
-func AddAlgotiqaClient(caCert string, clientCert string, clientKey string) {
-	AddClient(Algotiqa, caCert, clientCert, clientKey)
+func AddDefaultClient(caCert string, clientCert string, clientKey string) {
+	AddClient(DefaultClient, caCert, clientCert, clientKey)
 }
 
 //=============================================================================
@@ -69,8 +69,8 @@ func AddClient(id string, caCert string, clientCert string, clientKey string) {
 
 //=============================================================================
 
-func GetAlgotiqaClient() *http.Client {
-	return GetClient(Algotiqa)
+func GetDefaultClient() *http.Client {
+	return GetClient(DefaultClient)
 }
 
 //=============================================================================

@@ -70,7 +70,7 @@ var restContext *RestContext
 //=============================================================================
 
 func InitAuthentication(auth *core.Authentication) {
-	client := req.GetClient("algotiqa")
+	client   := req.GetDefaultClient()
 	ccontext := oidc.ClientContext(context.Background(), client)
 	provider, err := oidc.NewProvider(ccontext, auth.Authority)
 	core.ExitIfError(err)
@@ -111,10 +111,10 @@ func Token() (string, error) {
 
 func getToken() (*TokenResponse, error) {
 	params := "grant_type=client_credentials&client_id=" + restContext.clientId + "&client_secret=" + restContext.clientSecret
-	resp := TokenResponse{}
-	url := restContext.provider.Endpoint().TokenURL
+	resp   := TokenResponse{}
+	url    := restContext.provider.Endpoint().TokenURL
 
-	body := []byte(params)
+	body   := []byte(params)
 	reader := bytes.NewReader(body)
 
 	rq, err := http.NewRequest("POST", url, reader)
