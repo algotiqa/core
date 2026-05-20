@@ -1,6 +1,6 @@
 //=============================================================================
 /*
-Copyright © 2026 Andrea Carboni andrea.carboni71@gmail.com
+Copyright © 2023 Andrea Carboni andrea.carboni71@gmail.com
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,36 +22,59 @@ THE SOFTWARE.
 */
 //=============================================================================
 
-package db
+package dbms
 
 import (
-	"github.com/algotiqa/core/req"
+	"log/slog"
+	"time"
+
+	"github.com/algotiqa/core"
+	"gorm.io/driver/mysql"
+
 	"gorm.io/gorm"
 )
 
 //=============================================================================
 
-func GetOutboxMessages(tx *gorm.DB) (*[]OutboxMessage, error) {
-	var list []OutboxMessage
-	res := tx.Find(&list, "order by id")
+var dbms *gorm.DB
 
-	if res.Error != nil {
-		return nil, req.NewServerErrorByError(res.Error)
+//=============================================================================
+
+func InitDatabase(cfg *core.Database) {
+
+	slog.Info("Starting database...")
+	url := cfg.Username + ":" + cfg.Password + "@tcp(" + cfg.Address + ")/" + cfg.Name + "?charset=utf8mb4&parseTime=True"
+
+	dialector := mysql.New(mysql.Config{
+		DSN:                       url,
+		DefaultStringSize:         256,
+		DisableDatetimePrecision:  false,
+		DontSupportRenameIndex:    false,
+		DontSupportRenameColumn:   true,
+		SkipInitializeWithVersion: false,
+	})
+
+	db, err := gorm.Open(dialector, &gorm.Config{})
+	if err != nil {
+		core.ExitWithMessage("Failed to connect to the database: " + err.Error())
+	} else {
+		sqlDB, err := db.DB()
+		if err != nil {
+			core.ExitWithMessage("Failed to connect to create database pool: " + err.Error())
+		} else {
+			sqlDB.SetConnMaxLifetime(time.Minute * 3)
+			sqlDB.SetMaxOpenConns(50)
+			sqlDB.SetMaxIdleConns(10)
+		}
+
+		dbms = db
 	}
-
-	return &list, nil
 }
 
 //=============================================================================
 
-func AddOutboxMessage(tx *gorm.DB, om *OutboxMessage) error {
-	return tx.Create(om).Error
-}
-
-//=============================================================================
-
-func DeleteOutboxMessage(tx *gorm.DB, id uint) error {
-	return tx.Delete(&OutboxMessage{}, id).Error
+func RunInTransaction(f func(tx *gorm.DB) error) error {
+	return dbms.Transaction(f)
 }
 
 //=============================================================================

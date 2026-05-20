@@ -28,7 +28,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/algotiqa/core/db"
+	"github.com/algotiqa/core/dbms"
 	"gorm.io/gorm"
 )
 
@@ -49,14 +49,14 @@ func InitDbSpooler(pollInterval int) {
 //=============================================================================
 
 func addOutboxMessage(tx *gorm.DB, id string, payload []byte, exchange string) (err error) {
-	om := &db.OutboxMessage{
+	om := &dbms.OutboxMessage{
 		Timestamp: time.Now(),
 		Exchange : exchange,
 		Uuid     : id,
 		Payload  : payload,
 	}
 
-	return db.AddOutboxMessage(tx, om)
+	return dbms.AddOutboxMessage(tx, om)
 }
 
 //=============================================================================
@@ -88,12 +88,12 @@ func runDbSpooler() {
 
 //=============================================================================
 
-func getOutboxMessages() (*[]db.OutboxMessage, error) {
-	var list *[]db.OutboxMessage
+func getOutboxMessages() (*[]dbms.OutboxMessage, error) {
+	var list *[]dbms.OutboxMessage
 
-	err := db.RunInTransaction(func(tx *gorm.DB) error {
+	err := dbms.RunInTransaction(func(tx *gorm.DB) error {
 		var err error
-		list, err = db.GetOutboxMessages(tx)
+		list, err = dbms.GetOutboxMessages(tx)
 		return err
 	})
 
@@ -103,8 +103,8 @@ func getOutboxMessages() (*[]db.OutboxMessage, error) {
 //=============================================================================
 
 func deleteMessage(id uint) error {
-	return db.RunInTransaction(func(tx *gorm.DB) error {
-		return db.DeleteOutboxMessage(tx, id)
+	return dbms.RunInTransaction(func(tx *gorm.DB) error {
+		return dbms.DeleteOutboxMessage(tx, id)
 	})
 }
 

@@ -22,22 +22,36 @@ THE SOFTWARE.
 */
 //=============================================================================
 
-package db
+package dbms
 
-import "time"
+import (
+	"github.com/algotiqa/core/req"
+	"gorm.io/gorm"
+)
 
 //=============================================================================
 
-type OutboxMessage struct {
-	Id        uint      `gorm:"primaryKey"`
-	Timestamp time.Time
-	Exchange  string
-	Uuid      string
-	Payload   []byte
+func GetOutboxMessages(tx *gorm.DB) (*[]OutboxMessage, error) {
+	var list []OutboxMessage
+	res := tx.Find(&list, "order by id")
+
+	if res.Error != nil {
+		return nil, req.NewServerErrorByError(res.Error)
+	}
+
+	return &list, nil
 }
 
 //=============================================================================
 
-func (OutboxMessage) TableName() string { return "outbox" }
+func AddOutboxMessage(tx *gorm.DB, om *OutboxMessage) error {
+	return tx.Create(om).Error
+}
+
+//=============================================================================
+
+func DeleteOutboxMessage(tx *gorm.DB, id uint) error {
+	return tx.Delete(&OutboxMessage{}, id).Error
+}
 
 //=============================================================================
