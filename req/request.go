@@ -166,10 +166,10 @@ func GetParamAsStrings(c *gin.Context, name string) []string  {
 
 //=============================================================================
 
-func BindParamsFromQuery(c *gin.Context, obj any) (err error) {
+func BindParamsFromQuery(c *gin.Context, obj any) error {
 	if err := c.ShouldBindQuery(obj); err != nil {
 		message := parseError(err)
-		return NewBadRequestError(message, nil)
+		return NewBadRequestError(message)
 	}
 
 	return nil
@@ -177,10 +177,10 @@ func BindParamsFromQuery(c *gin.Context, obj any) (err error) {
 
 //=============================================================================
 
-func BindParamsFromBody(c *gin.Context, obj any) (err error) {
+func BindParamsFromBody(c *gin.Context, obj any) error {
 	if err := c.ShouldBind(obj); err != nil {
 		message := parseError(err)
-		return NewBadRequestError(message, nil)
+		return NewBadRequestError(message)
 	}
 
 	return nil
