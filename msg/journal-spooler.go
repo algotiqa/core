@@ -68,6 +68,11 @@ func NewJournalSpooler(queueSize int, compactMessages int) (*JournalSpooler, err
 	}
 	go s.worker()
 
+	err := s.compact()
+	if err != nil {
+		return nil, err
+	}
+
 	return s,s.recover()
 }
 
@@ -147,16 +152,25 @@ func (s *JournalSpooler) run(se *SpoolerEntry) {
 	s.writtenMessages++
 
 	if s.writtenMessages >= s.compactMessages {
-		start := time.Now()
-		count,err := journal.Compact()
-		duration := time.Now().Sub(start)
-		if err != nil {
-			slog.Error("Could not compact journal: " + err.Error())
-		} else {
-			s.writtenMessages = count
-			slog.Info("Journal compacted successfully", "count", count, "time", duration.Seconds())
-		}
+		_=s.compact()
 	}
+}
+
+//=============================================================================
+
+func (s *JournalSpooler) compact() error {
+	start     := time.Now()
+	count,err := journal.Compact()
+	duration  := time.Now().Sub(start)
+
+	if err != nil {
+		slog.Error("Could not compact journal: " + err.Error())
+	} else {
+		s.writtenMessages = count
+		slog.Info("Journal compacted successfully", "count", count, "time", duration.Seconds())
+	}
+
+	return err
 }
 
 //=============================================================================

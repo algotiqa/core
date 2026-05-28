@@ -180,9 +180,16 @@ func (j *Journal) Compact() (int, error) {
 
 	//--- Remove any old file (just in case)
 
-	err := j.deleteFile(JournalTemp)
+	exists,err := j.existsFile(JournalTemp)
 	if err != nil {
-		return 0,err
+		return 0, err
+	}
+
+	if exists {
+		err = j.deleteFile(JournalTemp)
+		if err != nil {
+			return 0,err
+		}
 	}
 
 	//--- Retrieve current not-ack entries
@@ -256,6 +263,22 @@ func (j *Journal) deleteFile(name string) error {
 
 func (j *Journal) renameFile(oldName,newName string) error {
 	return os.Rename(j.dir +"/"+ oldName, j.dir +"/"+ newName)
+}
+
+//=============================================================================
+
+func (j *Journal) existsFile(name string) (bool,error) {
+	_, err := os.Stat(name)
+	if err == nil {
+		return true,nil // File exists
+	}
+
+	if errors.Is(err, os.ErrNotExist) {
+		return false,nil // File explicitly does not exist
+	}
+
+	// The file might exist, but we got a different error (e.g., permission denied)
+	return false,err
 }
 
 //=============================================================================
