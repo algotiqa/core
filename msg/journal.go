@@ -131,12 +131,94 @@ func (j *Journal) Close() error {
 }
 
 //=============================================================================
-// Recover parses the journal file and returns all unacknowledged messages
 
 func (j *Journal) Recover() ([]*JournalEntry, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
+	return j.recover()
+}
+
+//=============================================================================
+// Compacts the journal file, removing all acknowledged messages
+
+func (j *Journal) Compact() ([]*JournalEntry, error) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+
+	//--- Remove any old file (just in case)
+
+	exists,err := j.existsFile(JournalTemp)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists {
+		err = j.deleteFile(JournalTemp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	//--- Retrieve current not-ack entries
+
+	entries, err := j.recover()
+	if err != nil {
+		return nil, err
+	}
+
+	//--- Create temp destination
+
+	file, err := j.createFile(JournalTemp)
+	if err != nil {
+		return nil, err
+	}
+
+	writer := bufio.NewWriter(file)
+
+	//--- Write entries into new temp file
+
+	for _, entry := range entries {
+		err = write(file, writer, entry, false)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = writer.Flush()
+	if err != nil {
+		return nil, err
+	}
+
+	err = file.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	err = j.deleteFile(JournalFile)
+	if err != nil {
+		return nil, err
+	}
+
+	err = j.renameFile(JournalTemp, JournalFile)
+	if err != nil {
+		panic("Could not rename journal: " + err.Error())
+	}
+
+	j.file, err = j.createFile(JournalFile)
+	if err != nil {
+		panic("Could not recreate journal: " + err.Error())
+	}
+
+	j.writer = bufio.NewWriter(j.file)
+
+	return entries,nil
+}
+
+//=============================================================================
+// Recover parses the journal file and returns all unacknowledged messages
+
+func (j *Journal) recover() ([]*JournalEntry, error) {
 	if _, err := j.file.Seek(0, io.SeekStart); err != nil {
 		return nil, err
 	}
@@ -169,82 +251,6 @@ func (j *Journal) Recover() ([]*JournalEntry, error) {
 	}
 
 	return unresolved, nil
-}
-
-//=============================================================================
-// Compacts the journal file, removing all acknowledged messages
-
-func (j *Journal) Compact() (int, error) {
-	j.mu.Lock()
-	defer j.mu.Unlock()
-
-	//--- Remove any old file (just in case)
-
-	exists,err := j.existsFile(JournalTemp)
-	if err != nil {
-		return 0, err
-	}
-
-	if exists {
-		err = j.deleteFile(JournalTemp)
-		if err != nil {
-			return 0,err
-		}
-	}
-
-	//--- Retrieve current not-ack entries
-
-	entries, err := j.Recover()
-	if err != nil {
-		return 0,err
-	}
-
-	//--- Create temp destination
-
-	file, err := j.createFile(JournalTemp)
-	if err != nil {
-		return 0,err
-	}
-
-	writer := bufio.NewWriter(file)
-
-	//--- Write entries into new temp file
-
-	for _, entry := range entries {
-		err = write(file, writer, entry, false)
-		if err != nil {
-			return 0,err
-		}
-	}
-
-	err = writer.Flush()
-	if err != nil {
-		return 0,err
-	}
-
-	err = file.Close()
-	if err != nil {
-		return 0,err
-	}
-
-	err = j.deleteFile(JournalFile)
-	if err != nil {
-		return 0,err
-	}
-
-	err = j.renameFile(JournalTemp, JournalFile)
-	if err != nil {
-		panic("Could not rename journal: " + err.Error())
-	}
-
-	j.file, err = j.createFile(JournalFile)
-	if err != nil {
-		panic("Could not recreate journal: " + err.Error())
-	}
-
-	j.writer = bufio.NewWriter(j.file)
-
-	return len(entries),nil
 }
 
 //=============================================================================

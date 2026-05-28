@@ -68,12 +68,12 @@ func NewJournalSpooler(queueSize int, compactMessages int) (*JournalSpooler, err
 	}
 	go s.worker()
 
-	err := s.compact()
+	entries,err := s.compact()
 	if err != nil {
 		return nil, err
 	}
 
-	return s,s.recover()
+	return s,s.recover(entries)
 }
 
 //=============================================================================
@@ -152,42 +152,38 @@ func (s *JournalSpooler) run(se *SpoolerEntry) {
 	s.writtenMessages++
 
 	if s.writtenMessages >= s.compactMessages {
-		_=s.compact()
+		_,_=s.compact()
 	}
 }
 
 //=============================================================================
 
-func (s *JournalSpooler) compact() error {
-	start     := time.Now()
-	count,err := journal.Compact()
-	duration  := time.Now().Sub(start)
+func (s *JournalSpooler) compact() ([]*JournalEntry, error) {
+	start       := time.Now()
+	entries,err := journal.Compact()
+	duration    := time.Now().Sub(start)
 
 	if err != nil {
 		slog.Error("Could not compact journal: " + err.Error())
 	} else {
-		s.writtenMessages = count
-		slog.Info("Journal compacted successfully", "count", count, "time", duration.Seconds())
+		s.writtenMessages = len(entries)
+		slog.Info("Journal compacted successfully", "count", s.writtenMessages, "time", duration.Seconds())
 	}
 
-	return err
+	return entries, err
 }
 
 //=============================================================================
 
-func (s *JournalSpooler) recover() error {
-	entries,err := journal.Recover()
-
-	if err == nil {
-		for _, entry := range entries {
-			err = s.Submit(entry.Id, entry.Payload, entry.Exchange)
-			if err != nil {
-				return err
-			}
+func (s *JournalSpooler) recover(entries []*JournalEntry) error {
+	for _, entry := range entries {
+		err := s.Submit(entry.Id, entry.Payload, entry.Exchange)
+		if err != nil {
+			return err
 		}
 	}
 
-	return err
+	return nil
 }
 
 //=============================================================================
