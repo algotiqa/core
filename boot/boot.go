@@ -12,10 +12,12 @@ package boot
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 
 	"github.com/algotiqa/core"
 	"github.com/gin-gonic/gin"
@@ -45,8 +47,7 @@ func ReadConfig(component string, config any) {
 
 //=============================================================================
 
-func InitLogger(component string, app *core.Application) *slog.Logger {
-
+func InitLogger(component, version string, app *core.Application) *slog.Logger {
 	//--- Create log file
 
 	logFile := "log/" + component + ".log"
@@ -76,6 +77,7 @@ func InitLogger(component string, app *core.Application) *slog.Logger {
 	)
 
 	slog.SetDefault(logger)
+	logStartupBanner(component, version)
 
 	return logger
 }
@@ -97,7 +99,6 @@ func InitEngine(logger *slog.Logger, app *core.Application) *gin.Engine {
 //=============================================================================
 
 func RunHttpServer(router *gin.Engine, app *core.Application) {
-
 	slog.Info("Starting HTTPS server...")
 	rootCAs, err := x509.SystemCertPool()
 	core.ExitIfError(err)
@@ -127,6 +128,24 @@ func RunHttpServer(router *gin.Engine, app *core.Application) {
 	slog.Info("Running")
 	err = server.ListenAndServeTLS("config/server.crt", "config/server.key")
 	core.ExitIfError(err)
+}
+
+//=============================================================================
+//===
+//=== Private methods
+//===
+//=============================================================================
+
+func logStartupBanner(component, version string) {
+	mem := core.GetMemoryInfo()
+
+	slog.Info("Starting service",
+		"module",     component,
+		"version",    version,
+		"cpus",       runtime.NumCPU(),
+		"usedMemory", fmt.Sprintf("%d MB", mem.UsedMB),
+		"totalMemory",fmt.Sprintf("%d MB", mem.TotalMB),
+	)
 }
 
 //=============================================================================
