@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/algotiqa/core"
 	"github.com/gin-gonic/gin"
@@ -37,6 +38,18 @@ func ReadConfig(component string, config any) {
 	viper.AddConfigPath("/etc/algotiqa/")
 	viper.AddConfigPath("$HOME/.algotiqa/" + component)
 	viper.AddConfigPath("config")
+
+	//--- Use env vars to replace config
+
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("ALGO")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	//--- Watch and reload the configuration
+
+	viper.WatchConfig()
+
+	//--- Read config
 
 	err := viper.ReadInConfig()
 	core.ExitIfError(err)
