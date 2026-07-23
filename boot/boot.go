@@ -152,8 +152,7 @@ func RunHttpServer(router *gin.Engine, app *core.Application) {
 func logStartupBanner(component, version string) {
 	mem := core.GetMemoryInfo()
 
-	slog.Info("Starting service",
-		"module",     component,
+	slog.Info("=== Starting service ========================",
 		"version",    version,
 		"cpus",       runtime.NumCPU(),
 		"usedMemory", fmt.Sprintf("%d MB", mem.UsedMB),
