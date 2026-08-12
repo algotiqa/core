@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/algotiqa/core"
 	"github.com/google/uuid"
@@ -50,7 +51,19 @@ func InitMessaging(cfg *core.Messaging) {
 
 	url = "amqp://" + cfg.Username + ":" + cfg.Password + "@" + cfg.Address + "/"
 
-	err = connect()
+	//--- Retry up to 50 secs to allow the messaging container to start
+	//--- Issue: if this container fail fast, it is not restarted by Podman
+
+	for i:=0; i<10; i++ {
+		err = connect()
+		if err == nil {
+			break
+		}
+
+		time.Sleep(5 * time.Second)
+		slog.Info("Retrying to connect to messaging system...")
+	}
+
 	if err != nil {
 		core.ExitWithMessage("Failed to connect to the messaging system or to get a channel: " + err.Error())
 	}
