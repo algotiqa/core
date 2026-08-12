@@ -51,28 +51,7 @@ type userToken struct {
 //=============================================================================
 
 func NewOidcController(authority string, client *http.Client, logger *slog.Logger, config any) *OidcController {
-	var ccontext context.Context
-	var provider *oidc.Provider
-	var err error
-
-	slog.Info("Connecting to OIDC provider...")
-
-	//--- Retry up to 50 secs to allow the identity provider to start
-	//--- Issue: if this container fail fast, it is not restarted by Podman
-
-	for i:=0; i<10; i++ {
-		ccontext = oidc.ClientContext(context.Background(), client)
-		provider, err = oidc.NewProvider(ccontext, authority)
-
-		if err == nil {
-			break
-		}
-
-		time.Sleep(5 * time.Second)
-		slog.Info("Retrying to connect to OIDC provider...")
-	}
-
-	core.ExitIfError(err)
+	ccontext, provider := createContextAndProvider(client, authority)
 
 	oidcConfig := &oidc.Config{
 		SkipClientIDCheck: true,
@@ -146,6 +125,35 @@ func (oc *OidcController) createLogger(us *UserSession, c *gin.Context) *slog.Lo
 //===
 //=== Private methods
 //===
+//=============================================================================
+
+func createContextAndProvider(client *http.Client, authority string) (context.Context, *oidc.Provider){
+	var ccontext context.Context
+	var provider *oidc.Provider
+	var err error
+
+	slog.Info("Connecting to OIDC provider...")
+
+	//--- Retry up to 50 secs to allow the identity provider to start
+	//--- Issue: if this container fail fast, it is not restarted by Podman
+
+	for i:=0; i<10; i++ {
+		ccontext = oidc.ClientContext(context.Background(), client)
+		provider, err = oidc.NewProvider(ccontext, authority)
+
+		if err == nil {
+			break
+		}
+
+		time.Sleep(5 * time.Second)
+		slog.Info("Retrying to connect to OIDC provider...")
+	}
+
+	core.ExitIfError(err)
+
+	return ccontext, provider
+}
+
 //=============================================================================
 
 func buildUserSession(ut *userToken, it *oidc.IDToken, onBehalfOf string) *UserSession {

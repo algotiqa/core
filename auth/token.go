@@ -11,7 +11,6 @@ package auth
 
 import (
 	"bytes"
-	"context"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -55,10 +54,10 @@ var restContext *RestContext
 //=============================================================================
 
 func InitAuthentication(auth *core.Authentication) {
-	client   := req.GetDefaultClient()
-	ccontext := oidc.ClientContext(context.Background(), client)
-	provider, err := oidc.NewProvider(ccontext, auth.Authority)
-	core.ExitIfError(err)
+	slog.Info("Starting authentication...")
+
+	client := req.GetDefaultClient()
+	_, provider := createContextAndProvider(client, auth.Authority)
 
 	restContext = &RestContext{
 		clientId:     auth.ClientId,
