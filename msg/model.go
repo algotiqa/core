@@ -28,6 +28,7 @@ const (
 	SourceBrokerProduct  = "broker-product"
 	SourcePortfolio      = "portfolio"
 	SourceTradingSession = "trading-session"
+	SourceAccount        = "account"
 
 	//--- Queue: Data Collector
 
